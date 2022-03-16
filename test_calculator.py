@@ -1,6 +1,7 @@
 import unittest
 from calculator import User, Product, Order, Order_Details, Promotion, Calculator
 
+# 測試 Order.original_sum() 方法 
 class TestOrderClass(unittest.TestCase):
     def setUp(self):
         self.user1 = User(user_id = 1, user_email = 'abc@example.com')
@@ -80,8 +81,51 @@ class TestCalculatorClass(unittest.TestCase):
 
         # 一般測試，折扣後無小數點 280*0.05 = 14
         self.assertEqual(self.calc.calculate(self.order1),{'original_sum': 280, 'deduction': 14, 'deducted_sum': 266})
-        # 一般測試，折扣後無有數點 280*0.07 = 19.6，捨去小數點
+        # 一般測試，折扣後有小數點 280*0.07 = 19.6，捨去小數點
         self.assertEqual(self.calc.calculate(self.order2),{'original_sum': 280, 'deduction': 19, 'deducted_sum': 261})
+
+    # 訂單滿 X 元折 Z %，折扣每人只能總共優惠 N 元
+    def test_calculate_decrease_percentage_with_decreaselimit(self):
+        self.promotion1 = Promotion(promotion_id=1,threshold=100,decrease_percentage=0.3,decrease_sum_limit=10)
+        self.order1 = Order(order_id=1, User=self.user1, order_details = [self.order_details1,self.order_details2,self.order_details3],Promotion=self.promotion1)
+        self.promotion2 = Promotion(promotion_id=2,threshold=100,decrease_percentage=0.05, decrease_sum_limit=100)
+        self.order2 = Order(order_id=1, User=self.user1, order_details = [self.order_details1,self.order_details2,self.order_details3],Promotion=self.promotion2)
+
+        # 測試
+        # 一般測試，折扣後無小數點 280*0.3 = 84 但折扣 <= 10
+        self.assertEqual(self.calc.calculate(self.order1),{'original_sum': 280, 'deduction': 10, 'deducted_sum': 270})
+        # 一般測試，折扣後無小數點 280*0.05 = 14 折扣限額為 100
+        self.assertEqual(self.calc.calculate(self.order2),{'original_sum': 280, 'deduction': 14, 'deducted_sum': 266})
+
+    # 訂單滿 X 元折 Y 元，此折扣在全站總共只能套⽤ N 次
+    def test_calculate_decrease_sum_usage_count_limit(self):
+        self.promotion1 = Promotion(promotion_id=1,threshold=100,decrease_sum=30,usage_count_limit=1000,usage_used_count=980)
+        self.order1 = Order(order_id=1, User=self.user1, order_details = [self.order_details1,self.order_details2,self.order_details3],Promotion=self.promotion1)
+        self.promotion2 = Promotion(promotion_id=2,threshold=100,decrease_sum=50,usage_count_limit=1000,usage_used_count=1000)
+        self.order2 = Order(order_id=1, User=self.user1, order_details = [self.order_details1,self.order_details2,self.order_details3],Promotion=self.promotion2)
+
+        # 測試
+        # 折扣為滿 100 折 30，使用次數未達全站上限
+        self.assertEqual(self.calc.calculate(self.order1),{'original_sum': 280, 'deduction': 30, 'deducted_sum': 250})
+        # 折扣為滿 100 折 50，使用次數已達全站上限，折扣無效
+        self.assertEqual(self.calc.calculate(self.order2),{'original_sum': 280, 'deduction': 0, 'deducted_sum': 280})
+
+    # 訂單滿 X 元折 Y 元，此折扣在全站每個⽉折扣上限為 N 元
+    def test_calculate_decrease_sum_monthly_sum_limit(self):
+        self.promotion1 = Promotion(promotion_id=1,threshold=100,decrease_sum=30,monthly_sum_limit=10000,monthly_sum_used=10000)
+        self.order1 = Order(order_id=1, User=self.user1, order_details = [self.order_details1,self.order_details2,self.order_details3],Promotion=self.promotion1)
+        self.promotion2 = Promotion(promotion_id=2,threshold=100,decrease_sum=50,monthly_sum_limit=10000,monthly_sum_used=5000)
+        self.order2 = Order(order_id=1, User=self.user1, order_details = [self.order_details1,self.order_details2,self.order_details3],Promotion=self.promotion2)
+        self.promotion3 = Promotion(promotion_id=3,threshold=100,decrease_sum=50,monthly_sum_limit=10000,monthly_sum_used=9985)
+        self.order3 = Order(order_id=1, User=self.user1, order_details = [self.order_details1,self.order_details2,self.order_details3],Promotion=self.promotion3)
+
+        # 測試
+        # 折扣為滿 100 折 30，全站每月折扣金額已達上限
+        self.assertEqual(self.calc.calculate(self.order1),{'original_sum': 280, 'deduction': 0, 'deducted_sum': 280})
+        # 折扣為滿 100 折 50，全站每月折扣金額未達上限(剩餘5000)
+        self.assertEqual(self.calc.calculate(self.order2),{'original_sum': 280, 'deduction': 50, 'deducted_sum': 230})
+        # 折扣為滿 100 折 50，全站每月折扣金額未達上限(剩餘15)
+        self.assertEqual(self.calc.calculate(self.order3),{'original_sum': 280, 'deduction': 15, 'deducted_sum': 265})
 
 if __name__ == "__main__":
     unittest.main()

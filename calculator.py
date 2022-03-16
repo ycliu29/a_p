@@ -1,6 +1,6 @@
 class User:
     def __init__(self, user_id, user_email):
-        # primary user id, set to none if not assigned
+        # 基礎 user 資訊
         self.user_id = user_id
         self.user_email = user_email
         return
@@ -16,12 +16,12 @@ class Order:
     def __init__(self, order_id, User, order_details, Promotion = None):
         self.order_id = order_id
         self.order_user= User
-        # order_details will be passed in within a list
+        # order_details 以 list 形式儲存
         self.order_details = order_details
         self.promotion = Promotion #default to None 
         return
     
-    # return plain sum, not considering promotion
+    # 計算折扣前訂單總額
     def original_sum(self):
         original_sum = 0
         for item in self.order_details:
@@ -38,25 +38,31 @@ class Order_Details:
         self.product_quantity = product_quantity
 
 class Promotion:
-    def __init__(self,promotion_id,limited_product=None,limited_product_threshold = None,threshold = None,decrease_sum=None,decrease_percentage = None,free_item = None,usage_count_limit = None,usage_used_count = None,decrease_sum_limit = None,promotion_sum_limit = None,promotion_sum_used = None):
+    def __init__(self,promotion_id,limited_product=None,limited_product_threshold = None,threshold = None,decrease_sum=None,decrease_percentage = None,free_item = None,usage_count_limit = None,usage_used_count = None,decrease_sum_limit = None,monthly_sum_limit = None,monthly_sum_used = None):
         self.id = promotion_id
-        # when order sum(limits to certain product if specified) >= threshold, the promotion will be triggered
-        self.limited_product = limited_product #pass in one Product
-        self.limited_product_threshold = limited_product_threshold # pass in integer, promotion will be triggered once order has >= threhold amounts of limited product
+        # 傳入一 Product 類別物件，可以改為 list of Product objects, 視業務單位需求定義
+        self.limited_product = limited_product
+        # 傳入一正整數，當訂單內 Product 數量 >= limited_product_threshold，觸發優惠
+        self.limited_product_threshold = limited_product_threshold 
+        # 如 threshold 存在，當折扣前訂單總額大於等於 threshold，觸發 promotion
         self.threshold = threshold 
-        # promotion types
-        self.decrease_sum = decrease_sum # integer only
+        # 優惠種類
+        # 傳入要扣抵的金額（正整數）
+        self.decrease_sum = decrease_sum 
+        # 傳入要扣抵的百分比（正整數），若折扣金額產生小數點，無條件捨去，可以透過 decrease_sum_limit 設定單筆折扣折抵金額上限（正整數）
         self.decrease_percentage = decrease_percentage
-        self.free_item = free_item #pass in Product
-        # promotion constraints
+        self.decrease_sum_limit = decrease_sum_limit
+        # 傳入（贈品）Product object
+        self.free_item = free_item
+        # promotion 限制
+        # 使用次數上限及已使用次數
         self.usage_count_limit = usage_count_limit
         self.usage_used_count = usage_used_count
-        self.decrease_sum_limit = decrease_sum_limit
-        self.promotion_sum_limit = promotion_sum_limit
-        self.promotion_sum_used = promotion_sum_used
+        # 每月折扣額度上限及已折扣額度
+        self.monthly_sum_limit = monthly_sum_limit
+        self.monthly_sum_used = monthly_sum_used
 
-# return dictionary with the following keys(original_sum, deduction, deducted_sum)
-# logic: check if there's promotion -> if it's by certain product count -> if promotion threshold is met -> if there's prmotion limit -> apply promotion
+# Calculator 完成計算後回傳一有下列三 key(original_sum, deduction, deducted_sum)的 dictionary
 class Calculator:
     def __init__(self):
         self.version = 1.0
@@ -125,11 +131,54 @@ class Calculator:
                             return return_d
                         # 有優惠 n 元上限
                         else:
-                            # TODO
-                            pass
+                            original_sum = Order.original_sum()
+                            deduction = int(original_sum * Order.promotion.decrease_percentage) # int() 無條件捨去小數點
+                            # 確保優惠金額 <= 上限
+                            if deduction > Order.promotion.decrease_sum_limit:
+                                deduction = Order.promotion.decrease_sum_limit
+                            deducted_sum = original_sum - deduction
+                            return_d = {'original_sum': original_sum, 'deduction': deduction, 'deducted_sum': deducted_sum}
+                            return return_d
+                    
+                    # 觸發 decrease_sum
+                    elif Order.promotion.free_item == None and Order.promotion.decrease_sum != None and Order.promotion.decrease_percentage == None:
+                        # 檢測 promotion 屬於折扣次數上限或每月折扣金額上限
+                        # 折扣次數上限
+                        if Order.promotion.usage_count_limit != None and Order.promotion.usage_used_count != None and Order.promotion.monthly_sum_used == None and Order.promotion.monthly_sum_limit == None:
+                            # 檢測折扣使用次數是否已達上限
+                            # 折扣使用次數已等於或大於上限
+                            if Order.promotion.usage_count_limit <= Order.promotion.usage_used_count: 
+                                original_sum = Order.original_sum()
+                                deducted_sum = original_sum
+                                return_d = {'original_sum': original_sum, 'deduction': deduction, 'deducted_sum': deducted_sum}
+                                return return_d
+                            # 折扣使用次數未達上限
+                            else:
+                                original_sum = Order.original_sum()
+                                deduction = Order.promotion.decrease_sum
+                                deducted_sum = original_sum - deduction
+                                return_d = {'original_sum': original_sum, 'deduction': deduction, 'deducted_sum': deducted_sum}
+                                return return_d
+                        # 每月折扣金額上限
+                        elif Order.promotion.usage_count_limit == None and Order.promotion.usage_used_count == None and Order.promotion.monthly_sum_used != None and Order.promotion.monthly_sum_limit != None:
+                            # 折扣已使用等於或超過每月折扣上限
+                            if Order.promotion.monthly_sum_used >= Order.promotion.monthly_sum_limit:
+                                original_sum = Order.original_sum()
+                                deducted_sum = original_sum
+                                return_d = {'original_sum': original_sum, 'deduction': deduction, 'deducted_sum': deducted_sum}
+                                return return_d
+                            # 折扣使用小於本月額度，且單筆折扣金額小於等於剩餘額度
+                            elif Order.promotion.monthly_sum_used < Order.promotion.monthly_sum_limit and Order.promotion.monthly_sum_limit-Order.promotion.monthly_sum_used >= Order.promotion.decrease_sum:
+                                original_sum = Order.original_sum()
+                                deduction = Order.promotion.decrease_sum
+                                deducted_sum = original_sum - deduction
+                                return_d = {'original_sum': original_sum, 'deduction': deduction, 'deducted_sum': deducted_sum}
+                                return return_d
 
-
-
-
-
-
+                            # 折扣使用小於本月額度，但單筆折扣金額大於剩餘額度
+                            elif Order.promotion.monthly_sum_used < Order.promotion.monthly_sum_limit and Order.promotion.monthly_sum_limit-Order.promotion.monthly_sum_used < Order.promotion.decrease_sum:
+                                original_sum = Order.original_sum()
+                                deduction = Order.promotion.monthly_sum_limit-Order.promotion.monthly_sum_used
+                                deducted_sum = original_sum - deduction
+                                return_d = {'original_sum': original_sum, 'deduction': deduction, 'deducted_sum': deducted_sum}
+                                return return_d
