@@ -38,7 +38,7 @@ class Order_Details:
         self.product_quantity = product_quantity
 
 class Promotion:
-    def __init__(self,promotion_id,limited_product=None,limited_product_threshold = None,threshold = None,decrease_sum=None,decrease_percentage = None,freeitem = None,usage_count_limit = None,usage_used_count = None,decrease_sum_limit = None,promotion_sum_limit = None,promotion_sum_used = None):
+    def __init__(self,promotion_id,limited_product=None,limited_product_threshold = None,threshold = None,decrease_sum=None,decrease_percentage = None,free_item = None,usage_count_limit = None,usage_used_count = None,decrease_sum_limit = None,promotion_sum_limit = None,promotion_sum_used = None):
         self.id = promotion_id
         # when order sum(limits to certain product if specified) >= threshold, the promotion will be triggered
         self.limited_product = limited_product #pass in one Product
@@ -47,7 +47,7 @@ class Promotion:
         # promotion types
         self.decrease_sum = decrease_sum # integer only
         self.decrease_percentage = decrease_percentage
-        self.freeitem = freeitem #pass in Product
+        self.free_item = free_item #pass in Product
         # promotion constraints
         self.usage_count_limit = usage_count_limit
         self.usage_used_count = usage_used_count
@@ -63,7 +63,7 @@ class Calculator:
     
     def calculate(self,Order):
         original_sum, deduction, deducted_sum = 0, 0, 0
-        # base case, no promotion
+        # 基礎案例 無 promotion
         if Order.promotion == None:
             original_sum = Order.original_sum()
             # no promotion used thus having the same original, deducted sum
@@ -72,13 +72,14 @@ class Calculator:
             return return_d
         
         else:
-            # check if promotion is applied to certain product
+            # 檢查 promotion 是否以特定產品數量作為判定條件
             if Order.promotion.limited_product != None:
                 meet_requirement = False
-                # iterate over order_details to check if order meets requirement
+                # iterate order_details 中的 order_detail, 確認訂單是否符合 Promotion 的數量條件
                 for item in Order.order_details:
                     if item.product == Order.promotion.limited_product:
                         if item.product_quantity >= Order.promotion.limited_product_threshold: meet_requirement = True
+                # 商品數量未達門檻，不使用 promotion 結算
                 if meet_requirement == False:
                     original_sum = Order.original_sum()
                     deducted_sum = original_sum
@@ -92,6 +93,21 @@ class Calculator:
                         raise ValueError('Order sum cannot be less than or equal to zero')
                     return_d = {'original_sum': original_sum, 'deduction': deduction, 'deducted_sum': deducted_sum}
                     return return_d
+
+            # 檢查訂單是否滿 x 元 Promotion.threshold
+            else:
+                # 訂單金額不足以使用 Promotion
+                if Order.original_sum < Order.promotion.threshold:
+                    original_sum = Order.original_sum()
+                    deducted_sum = original_sum
+                    return_d = {'original_sum': original_sum, 'deduction': deduction, 'deducted_sum': deducted_sum}
+                    return return_d
+                # 訂單金額已觸發 Promotion
+                # 檢測觸發種類 | 同時只能觸發一種（free_item, decrease_sum, decrease_percentage)
+                else: 
+                    if Order.promotion.free_item != None and Order.promotion.decrease_sum == None and Order.promotion.decrease_percentage == None:
+                        
+
 
 
 
