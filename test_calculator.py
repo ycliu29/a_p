@@ -15,10 +15,12 @@ class TestOrderClass(unittest.TestCase):
         self.order2 = Order(order_id=2, User=self.user1, order_details=[])
         self.order3 = Order(order_id=2, User=self.user1, order_details='test')
     
-    # test normal use case and if nothing is in the 'order_details' field
+    # 測試 original_sum method 及若訂單無 order_details
     def test_original_sum(self):
+        # 正常計算訂單總額（無 promotion）
         self.assertEqual(self.order1.original_sum(),280)
-        with self.assertRaises(ValueError): #order2 does not contain any order_details
+        # order2 結帳金額為 0，觸發 ValieError('Order sum cannot be less than or equal to zero')
+        with self.assertRaises(ValueError): 
             self.order2.original_sum()
 
 class TestCalculatorClass(unittest.TestCase):
@@ -37,6 +39,7 @@ class TestCalculatorClass(unittest.TestCase):
 
     # 訂單未使用 promotion
     def test_calculate_plain(self): 
+        # 訂單總額為 5*30 + 5*20 + 3*10 = 280
         self.assertEqual(self.calc.calculate(self.order1),{'original_sum': 280, 'deduction': 0, 'deducted_sum': 280})
     
     # 特定商品滿 X 件折 Y 元
@@ -50,11 +53,11 @@ class TestCalculatorClass(unittest.TestCase):
         self.order3 = Order(order_id=1, User=self.user1, order_details = [self.order_details1,self.order_details2,self.order_details3],Promotion=self.promotion3)
 
         # 測試
-        # 驗證物品數量 promotion 有效
+        # promotion1 為若訂單有 >= 2 個 Product2，折 30，有效
         self.assertEqual(self.calc.calculate(self.order1),{'original_sum': 280, 'deduction': 30, 'deducted_sum': 250}) 
-        # 當 promotion 所指定 Product 不等於 promotion.limited_product，不觸發
+        # promotion3 為若訂單有 >= 2 個 Product4，折 30，Product4 不在 OrderDetails 中，不觸發
         self.assertEqual(self.calc.calculate(self.order3),{'original_sum': 280, 'deduction': 0, 'deducted_sum': 280}) 
-        # 當折扣後金額小於等於 0 時，觸發 ValueError
+        # promotion2 為若訂單有 >= 2 個 Produtc2，折 30000，折扣後 deducted_sum <= 0，觸發 ValueError('Order sum cannot be less than or equal to zero')
         with self.assertRaises(ValueError): 
             self.calc.calculate(self.order2)
 
