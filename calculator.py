@@ -97,7 +97,7 @@ class Calculator:
             # 檢查訂單是否滿 x 元 Promotion.threshold
             else:
                 # 訂單金額不足以使用 Promotion
-                if Order.original_sum < Order.promotion.threshold:
+                if Order.original_sum() < int(Order.promotion.threshold):
                     original_sum = Order.original_sum()
                     deducted_sum = original_sum
                     return_d = {'original_sum': original_sum, 'deduction': deduction, 'deducted_sum': deducted_sum}
@@ -105,8 +105,29 @@ class Calculator:
                 # 訂單金額已觸發 Promotion
                 # 檢測觸發種類 | 同時只能觸發一種（free_item, decrease_sum, decrease_percentage)
                 else: 
+                    # 觸發 free_item
                     if Order.promotion.free_item != None and Order.promotion.decrease_sum == None and Order.promotion.decrease_percentage == None:
-                        
+                        original_sum = Order.original_sum()
+                        deduction = 'free_product_id: ' + str(Order.promotion.free_item.product_id)
+                        deducted_sum = original_sum
+                        return_d = {'original_sum': original_sum, 'deduction': deduction, 'deducted_sum': deducted_sum}
+                        return return_d
+                    
+                    # 觸發 decrease_percentage
+                    elif Order.promotion.free_item == None and Order.promotion.decrease_sum == None and Order.promotion.decrease_percentage != None:
+                        # 檢測是否有優惠上限
+                        # 無優惠 n 元上限
+                        if Order.promotion.decrease_sum_limit == None:
+                            original_sum = Order.original_sum()
+                            deduction = int(original_sum * Order.promotion.decrease_percentage) # int() 無條件捨去小數點
+                            deducted_sum = original_sum - deduction
+                            return_d = {'original_sum': original_sum, 'deduction': deduction, 'deducted_sum': deducted_sum}
+                            return return_d
+                        # 有優惠 n 元上限
+                        else:
+                            # TODO
+                            pass
+
 
 
 
