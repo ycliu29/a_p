@@ -1,3 +1,6 @@
+from logging import raiseExceptions
+
+
 class User:
     def __init__(self, user_id, user_email):
         # 基礎 user 資訊
@@ -79,7 +82,7 @@ class Calculator:
         
         else:
             # 檢查 promotion 是否以特定產品數量作為判定條件
-            if Order.promotion.limited_product != None:
+            if Order.promotion.limited_product != None and Order.promotion.threshold==None:
                 meet_requirement = False
                 # iterate order_details 中的 order_detail, 確認訂單是否符合 Promotion 的數量條件
                 for item in Order.order_details:
@@ -101,7 +104,7 @@ class Calculator:
                     return return_d
 
             # 檢查訂單是否滿 x 元 Promotion.threshold
-            else:
+            elif Order.promotion.limited_product == None and Order.promotion.threshold!=None:
                 # 訂單金額不足以使用 Promotion
                 if Order.original_sum() < int(Order.promotion.threshold):
                     original_sum = Order.original_sum()
@@ -182,3 +185,9 @@ class Calculator:
                                 deducted_sum = original_sum - deduction
                                 return_d = {'original_sum': original_sum, 'deduction': deduction, 'deducted_sum': deducted_sum}
                                 return return_d
+                    
+        # 如有未定義案例(promotion)，顯示錯誤
+        raise ValueError('Please contact customer service to inquire about this Order')
+                
+            
+            

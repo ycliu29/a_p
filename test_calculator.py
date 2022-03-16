@@ -130,6 +130,15 @@ class TestCalculatorClass(unittest.TestCase):
         # 折扣為滿 100 折 50，全站每月折扣金額未達上限(剩餘15)
         self.assertEqual(self.calc.calculate(self.order3),{'original_sum': 280, 'deduction': 15, 'deducted_sum': 265})
 
+    # 測試異常 promotion（不應該存在）
+    def test_unexpected_promotion(self):
+        self.promotion1 = Promotion(promotion_id=1,threshold=100,decrease_sum=30,monthly_sum_limit=10000,monthly_sum_used=10000,decrease_percentage=0.3,decrease_sum_limit=10)
+        self.order1 = Order(order_id=1, User=self.user1, order_details = [self.order_details1,self.order_details2,self.order_details3],Promotion=self.promotion1)
+
+        # 觸發 ValueError('Please contact customer service to inquire about this Order')
+        with self.assertRaises(ValueError): 
+            self.calc.calculate(self.order1)
+
 if __name__ == "__main__":
     unittest.main()
 
