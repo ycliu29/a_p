@@ -1,5 +1,5 @@
 import unittest
-from calculator_1 import User, Product, Order, Order_Details, Promotion, Calculator
+from calculator import User, Product, Order, Order_Details, Promotion, Calculator
 
 # 測試 Order.original_sum() 方法 
 class TestOrderClass(unittest.TestCase):
