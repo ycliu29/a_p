@@ -64,3 +64,74 @@ class Promotion_item_threshold(Promotion):
             return True
         else: 
             return False
+
+# 繼承 Promotion 類別，適用於訂單滿 x 元折 y%  or z 元，全站總共只能套⽤ N 次
+class Promotion_usage_count_limit(Promotion):
+    def __init__(self, promotion_id, Order, threshold, discount,current_usage,usage_limit):
+        super().__init__(promotion_id, Order, threshold, discount)
+        self.current_usage = current_usage
+        self.usage_limit = usage_limit
+    
+    # 修改資格確認方式（加入使用次數驗證）
+    def meet_promotion_requirement(self):
+        if self.Order.order_sum() >= self.threshold and self.usage_limit>self.current_usage: 
+            return True
+        else: 
+            return False
+
+# 繼承 Promotion 類別，適用於訂單滿 x 元折 y%  or z 元，限制每訂單（人）折扣上限
+class Promotion_deduction_limit(Promotion):
+    def __init__(self, promotion_id, Order, threshold, discount,discount_limit):
+        super().__init__(promotion_id, Order, threshold, discount)
+        self.discount_limit = discount_limit
+    
+    # 修改 discount 折扣計算，加入確認折扣金額是否低於限制
+    def calc_deduction(self):
+        # deduction 為折扣百分比，小數點無條件捨去
+        limit = self.discount_limit
+        if self.discount > 0 and self.discount < 1:
+            if int(self.discount * self.Order.order_sum()) > limit:
+                return limit
+            else: 
+                return int(self.discount * self.Order.order_sum())
+        # deduction 為折扣 y 元
+        elif self.discount > 1:
+            if self.discount > limit:
+                return limit
+            else:
+                return self.discount
+        # 未定義情況將報 ValueError
+        else:
+            raise ValueError('Please check promotion discount setting')
+
+# 繼承 Promotion 類別，適用於訂單滿 x 元折 y% or z 元，全站有折抵金額上限
+class Promotion_site_amount_limit(Promotion):
+    def __init__(self, promotion_id, Order, threshold, discount, site_limit,site_usage):
+        super().__init__(promotion_id, Order, threshold, discount)
+        self.site_limit = site_limit
+        self.site_usage = site_usage
+    
+     # 修改資格確認方式（加入驗證已使用金額）
+    def meet_promotion_requirement(self):
+        if self.Order.order_sum() >= self.threshold and self.site_limit > self.site_usage:
+            return True
+        else: 
+            return False
+    
+    # 修改 discount 折扣計算，若折扣金額 > 可用餘額，回傳可用餘額
+    def calc_deduction(self):
+        # deduction 為折扣百分比，小數點無條件捨去
+        if self.discount > 0 and self.discount < 1:
+            if int(self.discount * self.Order.order_sum()) < self.site_limit - self.site_usage:
+                return int(self.discount * self.Order.order_sum())
+            else: 
+                return self.site_limit - self.site_usage
+        # deduction 為折扣 y 元
+        elif self.discount > 1:
+            if self.discount < self.site_limit - self.site_usage:
+                return self.discount
+            else: 
+                return self.site_limit - self.site_usage
+        # 未定義情況將報 ValueError
+        else:
+            raise ValueError('Please check promotion discount setting')
