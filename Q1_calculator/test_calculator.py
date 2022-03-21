@@ -190,7 +190,6 @@ class TestCalculatorClass(unittest.TestCase):
         # 測試 calculate，Promotion 為訂單滿 150 元 折 30 元，全站使用未達上限（不影響折扣金額）
         self.assertEqual(self.calc1.calculate(self.order12),{'pre_promotion_sum': 190, 'deduction': 30, 'deducted_sum': 160})
 
-        
 
 if __name__ == "__main__":
     unittest.main()
