@@ -14,9 +14,9 @@ class Product:
         return 'Product-{}'.format(self.product_id)
 
 class Order:
-    def __init__(self, order_id:int, order_details:dict[int:int]):
+    def __init__(self, order_id:int, order_details:dict):
         self.order_id = order_id
-        #[productID1:quantity,productID2:quantity...etc]
+        # {Product(object):quantity,}
         self.order_details = order_details
 
     # 計算訂單未折扣金額
