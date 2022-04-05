@@ -29,6 +29,8 @@ class Order:
             order_sum += key.product_unit_price*value
         return order_sum
 
+# ---
+# Pormotion 類別
 class Promotion:
     def __init__(self,promotion_id:int,threshold,discount):
         self.promotion_id = promotion_id
@@ -41,6 +43,16 @@ class Promotion_usage_limit(Promotion):
         self.usage_limit = usage_limit
         self.current_usage = current_usage
 
+class Promotion_per_order_limit(Promotion):
+    def __init__(self, promotion_id: int, threshold, discount,per_order_limit:int):
+        super().__init__(promotion_id, threshold, discount)
+        self.per_order_limit = per_order_limit
+
+class Promotion_site_usage_sum_limit(Promotion):
+    def __init__(self, promotion_id: int, threshold, discount,usage_limit:int,current_usage:int):
+        super().__init__(promotion_id, threshold, discount)
+        self.usage_limit = usage_limit
+        self.current_usage = current_usage
 # --- 
 # 抽象折扣資格檢查類別
 class Promo_Requirement_Checker(ABC):
@@ -79,18 +91,40 @@ class Promo_Deduction_Calculator(ABC):
     def calculate_deduction(self, order:Order, promotion:Promotion):
         pass
 
-# 折扣為折數 (x%)
+# 折扣為百分比 (x%)
 class Percentage_Promo_Deduction_Calculator(Promo_Deduction_Calculator):
     @classmethod
     def calculate_deduction(self, order:Order, promotion:Promotion)-> int:
         # 無條件捨去
         return int(order.order_sum() * promotion.discount)
 
+# 折扣為百分比且有每 order 折扣上限
+class Percentage_withlimit_Promo_Deduction_Calculator(Promo_Deduction_Calculator):
+    @classmethod
+    def calculate_deduction(self, order:Order, promotion:Promotion_per_order_limit)-> int:
+        # 無條件捨去
+        gross_deduction = int(order.order_sum() * promotion.discount)
+        if gross_deduction <= promotion.per_order_limit:
+            return gross_deduction
+        else:
+            return promotion.per_order_limit
+
 # 折扣為整數 ($50)
 class Sum_Promo_Deduction_Calculator(Promo_Deduction_Calculator):
     @classmethod
     def calculate_deduction(self, promotion:Promotion)-> int:
         return promotion.discount
+
+# 折扣為整數 ($50) 且有全站折抵上限
+class Sum_site_limit_Promo_Deduction_Calculator(Promo_Deduction_Calculator):
+    @classmethod
+    def calculate_deduction(self, promotion:Promotion_site_usage_sum_limit)-> int:
+        if promotion.discount <= promotion.usage_limit - promotion.current_usage:
+            return promotion.discount
+        elif promotion.discount > promotion.usage_limit - promotion.current_usage and promotion.usage_limit >= promotion.current_usage:
+            return promotion.usage_limit - promotion.current_usage
+        else:
+            return 0 
 
 # 折扣為免費產品 (Product)
 class FreeItem_Promo_Deduction_Calculator(Promo_Deduction_Calculator):
@@ -114,7 +148,7 @@ class Nopromo_Calculator(Calculator):
         return_dict = {'pre_promotion_sum': pre_promotion_sum, 'deduction': deduction, 'deducted_sum': deducted_sum}
         return return_dict
 
-# 折抵總價類促銷（折扣總額不固定，如打折）
+# 折抵總價類促銷（折扣總額不固定，如打折。折扣額依賴 promotion + order classes 算出）
 class DiscountPromo_Calculator(Calculator):
     @classmethod
     def calculate(cls, order:Order, promotion:Promotion, promo_requirement:Promo_Requirement_Checker, promo_deduction:Promo_Deduction_Calculator) -> dict:
@@ -127,7 +161,7 @@ class DiscountPromo_Calculator(Calculator):
         return_dict = {'pre_promotion_sum': pre_promotion_sum, 'deduction': deduction, 'deducted_sum': deducted_sum}
         return return_dict
 
-# 折抵總價類促銷（折扣總額固定）
+# 折抵總價類促銷（折扣額只依賴 promotion class 算出）
 class FixedDiscountPromo_Calculator(Calculator):
     @classmethod
     def calculate(cls, order:Order, promotion:Promotion, promo_requirement:Promo_Requirement_Checker, promo_deduction:Promo_Deduction_Calculator) -> dict:
