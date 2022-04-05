@@ -103,7 +103,7 @@ class TestNopromo_CalculatorClass(unittest.TestCase):
         self.assertEqual(Nopromo_Calculator.calculate(self.order1),{'pre_promotion_sum': 250, 'deduction': 0, 'deducted_sum': 250})
 
 # 整合測試
-# 測試場景：訂單滿 X 元折 Z %、滿 X 元折 Z %，折扣每⼈只能總共優惠 N 元
+# 測試場景：訂單滿 X 元折 Z % | 滿 X 元折 Z %，折扣每⼈只能總共優惠 N 元
 class TestDiscountPromo_Calculator(unittest.TestCase):
     def setUp(self):
         self.product1 = Product(product_id=1,product_unit_price=10)
@@ -121,7 +121,7 @@ class TestDiscountPromo_Calculator(unittest.TestCase):
         self.assertEqual(DiscountPromo_Calculator.calculate(self.order1,self.promotion2,Order_sum_Promo_Requirement_Checker,Percentage_withlimit_Promo_Deduction_Calculator),{'pre_promotion_sum': 250, 'deduction': 20, 'deducted_sum': 230})
         self.assertEqual(DiscountPromo_Calculator.calculate(self.order1,self.promotion3,Order_sum_Promo_Requirement_Checker,Percentage_withlimit_Promo_Deduction_Calculator),{'pre_promotion_sum': 250, 'deduction': 25, 'deducted_sum': 225})
 
-# 測試場景：特定商品滿 X 件折 Y 元、滿 X 元折 Y 元，在全站總共只能套⽤ N 次、滿 X 元折 Y 元，全站折扣上限為 N 元
+# 測試場景：特定商品滿 X 件折 Y 元 | 滿 X 元折 Y 元，在全站總共只能套⽤ N 次 | 滿 X 元折 Y 元，全站折扣上限為 N 元
 class TestFixedDiscountPromo_Calculator(unittest.TestCase):
     def setUp(self):
         self.product1 = Product(product_id=1,product_unit_price=10)
