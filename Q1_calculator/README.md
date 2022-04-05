@@ -1,10 +1,19 @@
-### 功能設計邏輯 ###
+### 類別設計邏輯 ###
 
-類別功能
-- 使用者（User）：用戶資訊
-- 產品（Product）：產品資訊
-- 訂單（Order）：訂單資訊及計算「未折扣金額」的方法
-- 折扣（Promotion）：折扣資訊，主要邏輯有 1|確認此訂單是否符合折扣資格、2|計算折扣金額
-- 計算（Calculate）：計算「折扣後金額」，以字典輸出「未折扣金額」、「折扣金額」、「折扣後金額」，若需外加最終確認訂單邏輯（如折扣後金額不為零或負數，折抵金額不得大於特定異常大的數字（如折扣超過 10,000 NTD）），可以新建另一方法作為檢查再輸出
+設計邏輯
+遵從 SOLID 原則，高內聚、低耦合，偏好 composition 多於 inheritance
 
-運用繼承設計數個 Promotion class（為方便維護，將 promotion 獨立成一檔案），對應指定的折扣情境，又因為 Promotion 拆為確認資格、計算折扣金額兩個主要邏輯，可以彈性增加新的使用情境和限制（需求）
+- User：用戶資訊
+- Product：產品資訊
+- Order：訂單資訊及計算訂單總金額（不考慮 promotion）的方法
+- Promotion：折扣資訊，包括折扣門檻、折扣折數、金額或贈品，以數個 subclass 加入折扣限制（全站使用次數、每單優惠上限、每月折扣上限）
+- Promo_Requirement_Checker：檢查訂單是否符合折扣門檻，抽象類別為基礎，以 subclass 處理各邏輯（訂單達 x 元、訂單有 y 物品 N 個、訂單達 x 元且折扣尚未用盡，小於折扣使用次數限制）
+- Promo_Deduction_Calculator：計算訂單折扣金額，抽象類別為基礎，以 subclass 處理各邏輯（折 z%、送特定產品、折 x% 但每單上限 y 元、折 k 元但此折扣全站上限為 l 元）
+- Calculator：輸出計算後結果，需搭配情境對應的 Promo_Requirement_Checker 和 Promo_Deduction_Calculator。有數個 subclass 以處理無 promo、折抵金額和免費物品的情境，
+
+改版紀錄
+- 增加 type hints
+- 以 coverage.py 確認功能都已測試
+- 大幅度移除方法中不必要的 if else
+- 從 Order 類別中移除 Promotion, User(fields)
+- 新增 abstract classes
