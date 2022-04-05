@@ -11,6 +11,7 @@
 - Calculator：輸出計算後結果，需搭配情境對應的 Promo_Requirement_Checker 和 Promo_Deduction_Calculator。有數個 subclass 以處理無 promo、折抵金額和免費物品的情境，
 
 #### 改版紀錄 ####
+(舊 code 可見 Q1v2_deprecated_calculator）
 - 增加 type hints
 - 以 coverage.py 確認功能都已測試
 - 大幅度移除方法中不必要的 if else
