@@ -1,6 +1,5 @@
 ### 類別設計邏輯 ###
 
-設計邏輯
 遵從 SOLID 原則，高內聚、低耦合，偏好 composition 多於 inheritance
 
 - User：用戶資訊
