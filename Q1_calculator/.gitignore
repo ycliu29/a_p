@@ -1,0 +1,4 @@
+# Created by coverage.py
+.DS_Store
+.__pycache__
+.coverage
