@@ -1,3 +1,6 @@
+from logging import raiseExceptions
+from abc import ABC, abstractmethod, abstractclassmethod
+
 class User:
     def __init__(self, user_id: int):
         self.user_id = user_id
@@ -26,27 +29,74 @@ class Order:
             order_sum += key.product_unit_price*value
         return order_sum
 
-'''
-class Calculator:
-    def __init__(self) -> None:
+class Promotion:
+    def __init__(self,promotion_id:int,threshold,discount):
+        self.promotion_id = promotion_id
+        self.threshold = threshold
+        self.discount = discount
+
+# 抽象折扣資格檢查類別
+class Promo_Requirement_Checker(ABC):
+    @abstractclassmethod
+    def check(self, order:Order, promotion:Promotion) -> bool:
         pass
-    
+
+# 檢查 order 總額是否大於折扣門檻
+class Order_sum_Promo_Requirement_Checker(Promo_Requirement_Checker):
     @classmethod
-    def calculate(cls, Order):
-        if Order.promotion == None:
-            pre_promotion_sum = Order.order_sum()
+    def check(self, order:Order, promotion:Promotion) -> bool:
+        return True if order.order_sum() >= promotion.threshold else False
+
+# 檢查 order 中是否有單一品項大於折扣所需門檻
+class Item_Amount_Promo_Requirement_Checker(Promo_Requirement_Checker):
+    @classmethod
+    def check(self, order:Order, promotion:Promotion) -> bool:
+        for k,v in order.order_details.items():
+            if k in promotion.threshold and v >= promotion.threshold[k]:
+                return True
+        return False
+
+# 抽象折扣計算類別
+class Promo_Deduction_Calculator(ABC):
+    @abstractclassmethod
+    def calculate_deduction(self, order:Order, promotion:Promotion):
+        pass
+
+class Percentage_Promo_Deduction_Calculator(Promo_Deduction_Calculator):
+    @classmethod
+    def calculate_deduction(self, order:Order, promotion:Promotion)-> int:
+        # 無條件捨去
+        deduction = int(order.order_sum() * promotion.discount)
+        return deduction
+
+class Sum_Promo_Deduction_Calculator(Promo_Deduction_Calculator):
+    @classmethod
+    def calculate_deduction(self, order:Order, promotion:Promotion)-> int:
+        deduction = promotion.discount
+        return deduction
+
+class Calculator(ABC):
+    @abstractclassmethod
+    def calculate(cls,order:Order) -> dict:
+        pass
+
+# 用於折抵總價類促銷
+class DiscountPromo_Calculator(Calculator):
+    @classmethod
+    def calculate(cls, order:Order, promotion:Promotion, promo_requirement:Promo_Requirement_Checker, promo_deduction:Promo_Deduction_Calculator) -> dict:
+        pre_promotion_sum = order.order_sum()
+        if promo_requirement.check(order, promotion) == True:
+            deduction = promo_deduction.calculate_deduction(order,promotion)
+        else:
             deduction = 0
-            deducted_sum = pre_promotion_sum
-            return_d = {'pre_promotion_sum': pre_promotion_sum, 'deduction': deduction, 'deducted_sum': deducted_sum}
-            return return_d
-        else: 
-            pre_promotion_sum = Order.order_sum()
-            deduction = Order.promotion.order_deduction()
-            # check if deduction is int or a Product object
-            if isinstance(deduction,Product):
-                deducted_sum = pre_promotion_sum
-            else:
-                deducted_sum = pre_promotion_sum - deduction
-            return_d = {'pre_promotion_sum': pre_promotion_sum, 'deduction': deduction, 'deducted_sum': deducted_sum}
-            return return_d
-'''
+        deducted_sum = pre_promotion_sum - deduction
+        return_dict = {'pre_promotion_sum': pre_promotion_sum, 'deduction': deduction, 'deducted_sum': deducted_sum}
+        return return_dict
+
+class Nopromo_Calculator(Calculator):
+    @classmethod
+    def calculate(cls, order:Order) -> dict:
+        pre_promotion_sum, deduction = order.order_sum(), 0
+        deducted_sum = pre_promotion_sum
+        return_dict = {'pre_promotion_sum': pre_promotion_sum, 'deduction': deduction, 'deducted_sum': deducted_sum}
+        return return_dict
