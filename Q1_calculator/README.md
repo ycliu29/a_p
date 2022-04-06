@@ -13,7 +13,7 @@
 #### 改版紀錄 ####
 (舊 code 可見 Q1v2_deprecated_calculator）
 - 增加 type hints
-- 以 coverage.py 確認功能都已測試
+- 以 coverage.py 確認功能都已測試（93%，部分 pass、init、str 未納入測試）
 - 大幅度移除方法中不必要的 if else
 - 從 Order 類別中移除 Promotion, User(fields)
 - 新增 abstract classes
